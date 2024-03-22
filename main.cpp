@@ -29,7 +29,7 @@ u8 generate_ascii_char() {
     return random<u8>(1, 127);
 }
 
-auto generate_ascii_vec(usize len) -> std::vector<u8> {
+auto generate_ascii_vec(usize len) {
     auto vec = std::vector<u8>(len);
     for (usize i = 0; i < len; i++) {
         vec[i] = generate_ascii_char();

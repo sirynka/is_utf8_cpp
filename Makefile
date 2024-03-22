@@ -22,9 +22,9 @@ debug:
 release:
 	$(eval flags+=-O3)
 
-main: Makefile main.cpp
+main: $(b) Makefile main.cpp
 	$(cc) -std=$(std) $(flags) main.cpp -o main $(warn)
 
-run: $(b) main
+run: main
 	./main
 
