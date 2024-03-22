@@ -39,7 +39,9 @@ auto generate_ascii_vec(usize len) {
 
 bool c_is_ascii(std::span<u8> vec) {
     for (auto c : vec) {
-        isascii(c);
+        if (!isascii(c)) {
+            return false;
+        }
     }
     return true;
 }
@@ -78,11 +80,34 @@ bool is_ascii_bit_intrinsics(std::span<u8> vec) {
     auto ptr = (u8*) vec.data();
     auto vec_end = vec.data() + vec.size();
 
-    auto mask = _mm_set1_epi8(0x80);
+    // mask = 0b10000000.repeat(16)
+    // auto mask = _mm_set1_epi8(0x80);
     while (ptr + chunk_size < vec_end) {
+        // v = 0bxxxxxxxx 0bxxxxxxxx 0bxxxxxxxx 0bxxxxxxxx
         auto v = _mm_load_si128((__m128i*) ptr);
-        auto result = _mm_cmpeq_epi8(_mm_and_si128(v, mask), mask);
-        if (_mm_movemask_epi8(result) != 0) {
+
+        // 0bxxxxxxxx 0bxxxxxxxx 0bxxxxxxxx 0bxxxxxxxx
+        // 0b10000000 0b10000000 0b10000000 0b10000000
+        // and
+        // 0bx0000000 0bx0000000 0bx0000000 0bx0000000
+        // auto most_significant_bit = _mm_and_si128(v, mask);
+
+        // expanded_bits = zip(msb, mask)
+        // .map(|(msb_byte, mask_byte)| {
+        //    msb_byte == mask_byte
+        //        ? 0b11111111
+        //        : 0b00000000
+        // })
+        // expanded_bits // 0b11111111 0b11111111 0b00000000 0b00000000
+        // auto expanded_bits = _mm_cmpeq_epi8(most_significant_bit, mask);
+        // auto expanded_bits = most_significant_bit;
+
+        // compressed_bits = expanded_bits
+        // .map(|byte| (byte & 0b10000000) as bit)
+        // .collect::<u16>()
+        // compressed_bits // 0b1100;
+        int compressed_bits = _mm_movemask_epi8(v);
+        if (compressed_bits != 0) {
             return false;
         }
         ptr += chunk_size;
